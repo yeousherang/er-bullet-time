@@ -1,0 +1,12 @@
+[package]
+name = "er-bullet-time"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+name = "ERBulletTime"
+
+[dependencies]
+eldenring = "0.14.0"
+fromsoftware-shared = "0.14.0"
