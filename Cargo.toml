@@ -5,7 +5,6 @@ edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
-name = "ERBulletTime"
 
 [dependencies]
 eldenring = "0.14.0"
