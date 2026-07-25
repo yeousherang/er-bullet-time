@@ -1,0 +1,47 @@
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+
+const DEFAULT_TOML_CONTENT: &str = r#"# Elden Ring Bullet Time Mod Configuration (TOML)
+
+[bullet_time]
+# Action mode: "hold" (press and hold to activate) or "toggle" (press once to turn on, press again to turn off)
+action_type = "hold"
+
+# Speed multipliers
+bullet_time_speed = 0.2
+normal_speed = 1.0
+
+# Key combinations to activate bullet time
+# Supports Keyboard ("O", "P", "0x4F", etc.) and Xbox Gamepad ("lthumbpress+xa", "PadRSUp", etc.)
+bullet_time_keys = [
+    "O",
+    "lthumbpress+xa",
+    "PadRSUp"
+]
+
+# Key combinations to deactivate bullet time
+normal_keys = [
+    "P",
+    "lthumbpress+xb",
+    "PadRSDown"
+]
+"#;
+
+fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+
+    // OUT_DIR is typically target/<triple>/<profile>/build/<crate-hash>/out
+    let out_dir = match env::var("OUT_DIR") {
+        Ok(dir) => dir,
+        Err(_) => return,
+    };
+
+    let out_path = PathBuf::from(out_dir);
+
+    // Navigate up 3 ancestor levels to get target/<profile> (e.g. target/debug or target/release)
+    if let Some(target_dir) = out_path.ancestors().nth(3) {
+        let dest_toml_path = target_dir.join("er_bullet_time.toml");
+        let _ = fs::write(&dest_toml_path, DEFAULT_TOML_CONTENT);
+    }
+}
