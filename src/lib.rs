@@ -1,37 +1,30 @@
-use std::{panic::AssertUnwindSafe, sync::OnceLock, time::Duration};
 use eldenring::{
     cs::{CSTaskGroupIndex, CSTaskImp, ChrInsExt, ChrType, WorldChrMan},
     fd4::FD4TaskData,
-    util::input,
 };
 use fromsoftware_shared::{FromStatic, SharedTaskImpExt};
+use std::{
+    panic::AssertUnwindSafe,
+    sync::OnceLock,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
+
+pub mod config;
+pub mod input;
+
+use config::{ActionMode, get_config};
+use input::{is_combo_down, is_combo_pressed};
 
 const SP_EFFECT: i32 = 4330;
-const NORMAL_SPEED: f32 = 1.0;
-const TARGET_SPEED: f32 = 0.0;
-const BULLET_TIME_KEY: i32 = 0x40;
-
-enum ActionType {
-    Toggle = 0,
-    Hold
-}
-
-enum KeyState {
-    Idle,
-    Holding,
-    Press,
-    Release,
-}
-
-const ACTIVATE_KEY: i32 = 0x4F; // O
-const DEACTIVATE_KEY: i32 = 0x50; // P
-
+static IS_BULLET_TIME_ACTIVE: AtomicBool = AtomicBool::new(false);
 static LOG_GUARD: OnceLock<WorkerGuard> = OnceLock::new();
 
 fn init_tracing() {
-    let file_appender = tracing_appender::rolling::never(".", "er-bullet-time.log");
+    let log_dir = config::get_dll_directory().unwrap_or_else(|| std::path::PathBuf::from("logs"));
+    let file_appender = tracing_appender::rolling::never(log_dir, "er-bullet-time.log");
     let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
 
     let console_layer = fmt::layer()
@@ -58,7 +51,7 @@ fn init_tracing() {
     let _ = LOG_GUARD.set(guard);
 }
 
-fn set_chr_animation_speeds(world_chr_man: &mut WorldChrMan, target_speed: f32) {
+fn set_chr_animation_speeds(world_chr_man: &mut WorldChrMan, normal_speed: f32, target_speed: f32) {
     for chr_set in world_chr_man.chr_sets.iter().flatten() {
         for chr in chr_set.characters() {
             if chr as *const _ as usize == 0 {
@@ -67,7 +60,7 @@ fn set_chr_animation_speeds(world_chr_man: &mut WorldChrMan, target_speed: f32) 
 
             let _ = std::panic::catch_unwind(AssertUnwindSafe(move || {
                 chr.modules.behavior.animation_speed = match chr.chr_type {
-                    ChrType::Local => NORMAL_SPEED,
+                    ChrType::Local => normal_speed,
                     _ => target_speed,
                 };
             }));
@@ -75,26 +68,38 @@ fn set_chr_animation_speeds(world_chr_man: &mut WorldChrMan, target_speed: f32) 
     }
 }
 
-fn enable_bullet_time(world_chr_man: &mut WorldChrMan) {
+fn enable_bullet_time(world_chr_man: &mut WorldChrMan, normal_speed: f32, target_speed: f32) {
+    if IS_BULLET_TIME_ACTIVE.swap(true, Ordering::SeqCst) {
+        // Already active, just maintain speeds
+        set_chr_animation_speeds(world_chr_man, normal_speed, target_speed);
+        return;
+    }
+
     let Some(main_player) = world_chr_man.main_player.as_mut() else {
         return;
     };
 
-    tracing::info!("bullet time enabled");
+    tracing::info!("Bullet time enabled (speed: {})", target_speed);
     main_player.apply_speffect(SP_EFFECT, true);
 
-    set_chr_animation_speeds(world_chr_man, TARGET_SPEED);
+    set_chr_animation_speeds(world_chr_man, normal_speed, target_speed);
 }
 
-fn disable_bullet_time(world_chr_man: &mut WorldChrMan) {
+fn disable_bullet_time(world_chr_man: &mut WorldChrMan, normal_speed: f32) {
+    if !IS_BULLET_TIME_ACTIVE.swap(false, Ordering::SeqCst) {
+        // Already inactive, just maintain speeds
+        set_chr_animation_speeds(world_chr_man, normal_speed, normal_speed);
+        return;
+    }
+
     let Some(main_player) = world_chr_man.main_player.as_mut() else {
         return;
     };
 
-    tracing::info!("bullet time disabled");
+    tracing::info!("Bullet time disabled");
     main_player.chr_ins.remove_speffect(SP_EFFECT);
 
-    set_chr_animation_speeds(world_chr_man, NORMAL_SPEED);
+    set_chr_animation_speeds(world_chr_man, normal_speed, normal_speed);
 }
 
 fn update_bullet_time() {
@@ -102,28 +107,52 @@ fn update_bullet_time() {
         return;
     };
 
-    if input::is_key_pressed(ACTIVATE_KEY) {
-        enable_bullet_time(world_chr_man);
-    }
+    let cfg = &get_config().bullet_time;
+    let normal_speed = cfg.normal_speed;
+    let bullet_speed = cfg.bullet_time_speed;
 
-    if input::is_key_pressed(DEACTIVATE_KEY) {
-        disable_bullet_time(world_chr_man);
+    let activate_triggered = cfg.bullet_time_keys.iter().any(|k| is_combo_pressed(k));
+    let deactivate_triggered = cfg.normal_keys.iter().any(|k| is_combo_pressed(k));
+
+    match cfg.action_type {
+        ActionMode::Toggle => {
+            if activate_triggered {
+                let currently_active = IS_BULLET_TIME_ACTIVE.load(Ordering::SeqCst);
+                if currently_active {
+                    disable_bullet_time(world_chr_man, normal_speed);
+                } else {
+                    enable_bullet_time(world_chr_man, normal_speed, bullet_speed);
+                }
+            } else if deactivate_triggered {
+                disable_bullet_time(world_chr_man, normal_speed);
+            } else if IS_BULLET_TIME_ACTIVE.load(Ordering::SeqCst) {
+                // Maintain bullet time animation speeds
+                set_chr_animation_speeds(world_chr_man, normal_speed, bullet_speed);
+            }
+        }
+        ActionMode::Hold => {
+            let is_holding_activate = cfg.bullet_time_keys.iter().any(|k| is_combo_down(k));
+            if is_holding_activate {
+                enable_bullet_time(world_chr_man, normal_speed, bullet_speed);
+            } else {
+                disable_bullet_time(world_chr_man, normal_speed);
+            }
+        }
     }
 }
 
 /// # Safety
-/// This is exposed this way such that libraryloader can call it. Do not call this yourself.
+/// Exposed for libraryloader to call. Do not call directly.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn DllMain(_hmodule: u64, reason: u32) -> bool {
-    // Exit early if we're not attaching a DLL.
     if reason != 1 {
         return true;
     }
 
     init_tracing();
+    let _ = get_config(); // Initialize config on DLL load
 
     std::thread::spawn(move || {
-        // Retrieve game's task runner and register a task at frame begin.
         let cs_task = CSTaskImp::wait_for_instance(Duration::MAX).unwrap();
 
         cs_task.run_recurring(
