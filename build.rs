@@ -12,8 +12,17 @@ action_type = "hold"
 bullet_time_speed = 0.2
 normal_speed = 1.0
 
+# Stealth / Invisibility options during bullet time
+# Enable stealth effect during bullet time
+enable_stealth = true
+
+# SpEffect IDs to apply for stealth during bullet time (e.g. [4100, 4101])
+# 4100: Assassin's Approach / Concealing Veil (reduces enemy detection & eliminates footstep sound)
+# 4101: Unseen Form (visual transparency & reduces enemy detection)
+stealth_speffect_ids = [4100]
+
 # Key combinations to activate bullet time
-# Supports Keyboard ("O", "P", "0x4F", etc.) and Xbox Gamepad ("lthumbpress+xa", "PadRSUp", etc.)
+# Supports Keyboard ("1", "O", "F1", "Shift+O", etc.) and Xbox Gamepad ("lthumbpress+xa", "PadRSUp", etc.)
 bullet_time_keys = [
     "O",
     "lthumbpress+xa",

@@ -82,6 +82,13 @@ fn enable_bullet_time(world_chr_man: &mut WorldChrMan, normal_speed: f32, target
     tracing::info!("Bullet time enabled (speed: {})", target_speed);
     main_player.apply_speffect(SP_EFFECT, true);
 
+    let cfg = &get_config().bullet_time;
+    if cfg.enable_stealth {
+        for &sp_id in &cfg.stealth_speffect_ids {
+            main_player.apply_speffect(sp_id, true);
+        }
+    }
+
     set_chr_animation_speeds(world_chr_man, normal_speed, target_speed);
 }
 
@@ -98,6 +105,13 @@ fn disable_bullet_time(world_chr_man: &mut WorldChrMan, normal_speed: f32) {
 
     tracing::info!("Bullet time disabled");
     main_player.chr_ins.remove_speffect(SP_EFFECT);
+
+    let cfg = &get_config().bullet_time;
+    if cfg.enable_stealth {
+        for &sp_id in &cfg.stealth_speffect_ids {
+            main_player.chr_ins.remove_speffect(sp_id);
+        }
+    }
 
     set_chr_animation_speeds(world_chr_man, normal_speed, normal_speed);
 }

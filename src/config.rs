@@ -37,6 +37,14 @@ pub struct BulletTimeConfig {
     #[serde(default = "default_normal_speed")]
     pub normal_speed: f32,
 
+    /// Enable stealth / invisibility effect during bullet time
+    #[serde(default = "default_enable_stealth")]
+    pub enable_stealth: bool,
+
+    /// SpEffect IDs to apply for stealth during bullet time (e.g. [4100, 4101])
+    #[serde(default = "default_stealth_speffect_ids")]
+    pub stealth_speffect_ids: Vec<i32>,
+
     /// Key combinations to activate bullet time (e.g. ["O", "PadRSUp", "lthumbpress+xa"])
     #[serde(default = "default_bullet_time_keys")]
     pub bullet_time_keys: Vec<String>,
@@ -52,6 +60,14 @@ fn default_bullet_time_speed() -> f32 {
 
 fn default_normal_speed() -> f32 {
     1.0
+}
+
+fn default_enable_stealth() -> bool {
+    true
+}
+
+fn default_stealth_speffect_ids() -> Vec<i32> {
+    vec![4100]
 }
 
 fn default_bullet_time_keys() -> Vec<String> {
@@ -76,6 +92,8 @@ impl Default for BulletTimeConfig {
             action_type: ActionMode::Hold,
             bullet_time_speed: default_bullet_time_speed(),
             normal_speed: default_normal_speed(),
+            enable_stealth: default_enable_stealth(),
+            stealth_speffect_ids: default_stealth_speffect_ids(),
             bullet_time_keys: default_bullet_time_keys(),
             normal_keys: default_normal_keys(),
         }
