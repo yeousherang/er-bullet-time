@@ -173,6 +173,7 @@ fn update_bullet_time() {
 
 /// # Safety
 /// Exposed for libraryloader to call. Do not call directly.
+#[allow(non_snake_case)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn DllMain(_hmodule: u64, reason: u32) -> bool {
     if reason != 1 {
