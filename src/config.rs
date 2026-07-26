@@ -37,6 +37,10 @@ pub struct BulletTimeConfig {
     #[serde(default = "default_normal_speed")]
     pub normal_speed: f32,
 
+    /// Whether to treat Torrent (player mount) the same as the player (normal speed during bullet time)
+    #[serde(default = "default_include_torrent")]
+    pub include_torrent: bool,
+
     /// Enable stealth / invisibility effect during bullet time
     #[serde(default = "default_enable_stealth")]
     pub enable_stealth: bool,
@@ -60,6 +64,10 @@ fn default_bullet_time_speed() -> f32 {
 
 fn default_normal_speed() -> f32 {
     1.0
+}
+
+fn default_include_torrent() -> bool {
+    true
 }
 
 fn default_enable_stealth() -> bool {
@@ -92,6 +100,7 @@ impl Default for BulletTimeConfig {
             action_type: ActionMode::Hold,
             bullet_time_speed: default_bullet_time_speed(),
             normal_speed: default_normal_speed(),
+            include_torrent: default_include_torrent(),
             enable_stealth: default_enable_stealth(),
             stealth_speffect_ids: default_stealth_speffect_ids(),
             bullet_time_keys: default_bullet_time_keys(),

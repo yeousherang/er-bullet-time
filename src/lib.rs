@@ -52,6 +52,14 @@ fn init_tracing() {
 }
 
 fn set_chr_animation_speeds(world_chr_man: &mut WorldChrMan, normal_speed: f32, target_speed: f32) {
+    let cfg = &get_config().bullet_time;
+    let include_torrent = cfg.include_torrent;
+
+    let mount_handle = world_chr_man
+        .main_player
+        .as_ref()
+        .map(|p| unsafe { p.player_game_data.as_ref().mount_handle });
+
     for chr_set in world_chr_man.chr_sets.iter().flatten() {
         for chr in chr_set.characters() {
             if chr as *const _ as usize == 0 {
@@ -59,9 +67,17 @@ fn set_chr_animation_speeds(world_chr_man: &mut WorldChrMan, normal_speed: f32, 
             }
 
             let _ = std::panic::catch_unwind(AssertUnwindSafe(move || {
-                chr.modules.behavior.animation_speed = match chr.chr_type {
-                    ChrType::Local => normal_speed,
-                    _ => target_speed,
+                let is_local_player = chr.chr_type == ChrType::Local;
+                let is_torrent = include_torrent
+                    && (chr.npc_id == 8000
+                        || chr.character_id == 8000
+                        || mount_handle
+                            .map_or(false, |h| !h.is_empty() && h == chr.field_ins_handle));
+
+                chr.modules.behavior.animation_speed = if is_local_player || is_torrent {
+                    normal_speed
+                } else {
+                    target_speed
                 };
             }));
         }
@@ -85,7 +101,7 @@ fn enable_bullet_time(world_chr_man: &mut WorldChrMan, normal_speed: f32, target
     let cfg = &get_config().bullet_time;
     if cfg.enable_stealth {
         for &sp_id in &cfg.stealth_speffect_ids {
-            main_player.apply_speffect(sp_id, true);
+            main_player.apply_speffect(sp_id, false);
         }
     }
 

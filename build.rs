@@ -12,6 +12,9 @@ action_type = "hold"
 bullet_time_speed = 0.2
 normal_speed = 1.0
 
+# Keep Torrent (player mount) at normal speed during bullet time (true / false)
+include_torrent = true
+
 # Stealth / Invisibility options during bullet time
 # Enable stealth effect during bullet time
 enable_stealth = true
