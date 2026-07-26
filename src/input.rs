@@ -166,9 +166,65 @@ pub fn parse_input_key(s: &str) -> Option<InputKey> {
         "x" => Some(InputKey::Keyboard(0x58)),
         "y" => Some(InputKey::Keyboard(0x59)),
         "z" => Some(InputKey::Keyboard(0x5A)),
+
+        // Main number row (0-9 above QWERTY)
+        "0" => Some(InputKey::Keyboard(0x30)),
+        "1" => Some(InputKey::Keyboard(0x31)),
+        "2" => Some(InputKey::Keyboard(0x32)),
+        "3" => Some(InputKey::Keyboard(0x33)),
+        "4" => Some(InputKey::Keyboard(0x34)),
+        "5" => Some(InputKey::Keyboard(0x35)),
+        "6" => Some(InputKey::Keyboard(0x36)),
+        "7" => Some(InputKey::Keyboard(0x37)),
+        "8" => Some(InputKey::Keyboard(0x38)),
+        "9" => Some(InputKey::Keyboard(0x39)),
+
+        // Numpad numbers
+        "numpad0" | "num0" => Some(InputKey::Keyboard(0x60)),
+        "numpad1" | "num1" => Some(InputKey::Keyboard(0x61)),
+        "numpad2" | "num2" => Some(InputKey::Keyboard(0x62)),
+        "numpad3" | "num3" => Some(InputKey::Keyboard(0x63)),
+        "numpad4" | "num4" => Some(InputKey::Keyboard(0x64)),
+        "numpad5" | "num5" => Some(InputKey::Keyboard(0x65)),
+        "numpad6" | "num6" => Some(InputKey::Keyboard(0x66)),
+        "numpad7" | "num7" => Some(InputKey::Keyboard(0x67)),
+        "numpad8" | "num8" => Some(InputKey::Keyboard(0x68)),
+        "numpad9" | "num9" => Some(InputKey::Keyboard(0x69)),
+
+        // Function keys (F1-F12)
+        "f1" => Some(InputKey::Keyboard(0x70)),
+        "f2" => Some(InputKey::Keyboard(0x71)),
+        "f3" => Some(InputKey::Keyboard(0x72)),
+        "f4" => Some(InputKey::Keyboard(0x73)),
+        "f5" => Some(InputKey::Keyboard(0x74)),
+        "f6" => Some(InputKey::Keyboard(0x75)),
+        "f7" => Some(InputKey::Keyboard(0x76)),
+        "f8" => Some(InputKey::Keyboard(0x77)),
+        "f9" => Some(InputKey::Keyboard(0x78)),
+        "f10" => Some(InputKey::Keyboard(0x79)),
+        "f11" => Some(InputKey::Keyboard(0x7A)),
+        "f12" => Some(InputKey::Keyboard(0x7B)),
+
+        // Special and navigation keys
         "space" => Some(InputKey::Keyboard(0x20)),
         "tab" => Some(InputKey::Keyboard(0x09)),
         "escape" | "esc" => Some(InputKey::Keyboard(0x1B)),
+        "shift" | "lshift" | "rshift" => Some(InputKey::Keyboard(0x10)),
+        "ctrl" | "control" | "lctrl" | "rctrl" => Some(InputKey::Keyboard(0x11)),
+        "alt" | "lalt" | "ralt" => Some(InputKey::Keyboard(0x12)),
+        "capslock" | "caps" => Some(InputKey::Keyboard(0x14)),
+        "enter" | "return" => Some(InputKey::Keyboard(0x0D)),
+        "backspace" => Some(InputKey::Keyboard(0x08)),
+        "delete" | "del" => Some(InputKey::Keyboard(0x2E)),
+        "insert" | "ins" => Some(InputKey::Keyboard(0x2D)),
+        "home" => Some(InputKey::Keyboard(0x24)),
+        "end" => Some(InputKey::Keyboard(0x23)),
+        "pageup" | "pgup" => Some(InputKey::Keyboard(0x21)),
+        "pagedown" | "pgdn" => Some(InputKey::Keyboard(0x22)),
+        "up" => Some(InputKey::Keyboard(0x26)),
+        "down" => Some(InputKey::Keyboard(0x28)),
+        "left" => Some(InputKey::Keyboard(0x25)),
+        "right" => Some(InputKey::Keyboard(0x27)),
 
         // Xbox Gamepad Aliases (matching er_bullet_time.ini styles like "lthumbpress", "xa", "xb")
         "lthumbpress" | "lthumb" | "padlthumb" | "l3" => Some(InputKey::PAD_LEFT_THUMB),
@@ -346,5 +402,27 @@ mod tests {
         assert_eq!(keys.len(), 2);
         assert_eq!(keys[0], InputKey::PAD_LEFT_THUMB);
         assert_eq!(keys[1], InputKey::PAD_A);
+    }
+
+    #[test]
+    fn test_parse_number_keys() {
+        // Main number row ("1" -> VK_1 = 0x31)
+        assert_eq!(parse_input_key("1"), Some(InputKey::Keyboard(0x31)));
+        assert_eq!(parse_input_key("0"), Some(InputKey::Keyboard(0x30)));
+        assert_eq!(parse_input_key("9"), Some(InputKey::Keyboard(0x39)));
+
+        // Numpad ("num1" / "numpad1" -> VK_NUMPAD1 = 0x61)
+        assert_eq!(parse_input_key("1"), Some(InputKey::Keyboard(0x31)));
+        assert_eq!(parse_input_key("num1"), Some(InputKey::Keyboard(0x61)));
+        assert_eq!(parse_input_key("numpad1"), Some(InputKey::Keyboard(0x61)));
+
+        // Function keys ("f1" -> VK_F1 = 0x70)
+        assert_eq!(parse_input_key("f1"), Some(InputKey::Keyboard(0x70)));
+        assert_eq!(parse_input_key("f12"), Some(InputKey::Keyboard(0x7B)));
+
+        // Modifiers & arrows
+        assert_eq!(parse_input_key("shift"), Some(InputKey::Keyboard(0x10)));
+        assert_eq!(parse_input_key("ctrl"), Some(InputKey::Keyboard(0x11)));
+        assert_eq!(parse_input_key("alt"), Some(InputKey::Keyboard(0x12)));
     }
 }
